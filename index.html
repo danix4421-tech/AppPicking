@@ -21,6 +21,28 @@
         .next-item { opacity: 0.4; }
         .done-item { opacity: 0.5; filter: grayscale(1); }
         ::-webkit-scrollbar { display: none; }
+
+
+        /* Animación de parpadeo rápido (un solo pick) */
+.flash-pick {
+    animation: flashGreen 0.4s ease-out;
+}
+
+@keyframes flashGreen {
+    0% { background-color: rgb(255, 187, 0); }
+    100% { background-color: #f8f9fa; }
+}
+
+/* Animación de éxito final (bucle suave) */
+.flash-complete {
+    animation: pulseSuccess 2s infinite;
+}
+
+@keyframes pulseSuccess {
+    0%, 100% { background-color: #f8f9fa; }
+    50% { background-color: #dcfce7; }
+}
+
     </style>
 </head>
 <body class="p-2 font-sans text-slate-900">
@@ -47,6 +69,39 @@
 
         let items = [];
         let pickedIds = JSON.parse(localStorage.getItem('calispo_simple_v1')) || [];
+
+        // --- SECCIÓN DE SONIDOS ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playTone(freq, type, duration, volume) {
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        oscillator.type = type;
+        oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        
+        gainNode.gain.setValueAtTime(volume, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + duration);
+    }
+
+    function soundPick() {
+        playTone(600, 'sine', 0.1, 0.5); // Sonido corto y suave
+    }
+
+    function soundSuccess() {
+        // Una pequeña melodía de éxito (Do - Mi - Sol)
+        const now = audioCtx.currentTime;
+        [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => {
+            setTimeout(() => playTone(f, 'triangle', 0.4, 0.3), i * 150);
+        });
+    }
+    // ---------------------------
 
         async function fetchSheetData() {
             const btn = document.getElementById('updateBtn');
@@ -113,20 +168,43 @@
         }
 
         function togglePick(id) {
-            pickedIds.includes(id) ? pickedIds = pickedIds.filter(i => i !== id) : pickedIds.push(id);
-            localStorage.setItem('calispo_simple_v1', JSON.stringify(pickedIds));
-            render();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+        const isPicking = !pickedIds.includes(id);
+
+        if (isPicking) {
+            soundPick(); // Sonido
+            
+            // --- EFECTO VISUAL DE PICK ---
+            document.body.classList.remove('flash-pick');
+            void document.body.offsetWidth; // Truco para reiniciar la animación
+            document.body.classList.add('flash-pick');
+            
+            // Limpiamos la clase después de que termine la animación
+            setTimeout(() => document.body.classList.remove('flash-pick'), 400);
+        }
+        
+        pickedIds.includes(id) ? pickedIds = pickedIds.filter(i => i !== id) : pickedIds.push(id);
+        localStorage.setItem('calispo_simple_v1', JSON.stringify(pickedIds));
+        render();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function render() {
+        const container = document.getElementById('main-container');
+        const sched = document.getElementById('filterSchedule').value;
+        const filtered = sched ? items.filter(i => i.horario === sched) : items;
+        
+        const todo = filtered.filter(i => !pickedIds.includes(i.id));
+        const done = filtered.filter(i => pickedIds.includes(i.id));
+        
+        // --- GESTIÓN DE FINALIZACIÓN ---
+        if (filtered.length > 0 && todo.length === 0) {
+            soundSuccess();
+            document.body.classList.add('flash-complete'); // Se queda parpadeando en verde suave
+        } else {
+            document.body.classList.remove('flash-complete');
         }
 
-        function render() {
-            const container = document.getElementById('main-container');
-            const sched = document.getElementById('filterSchedule').value;
-            const filtered = sched ? items.filter(i => i.horario === sched) : items;
-            
-            const todo = filtered.filter(i => !pickedIds.includes(i.id));
-            const done = filtered.filter(i => pickedIds.includes(i.id));
-            document.getElementById('counter').innerText = `${done.length}/${filtered.length}`;
+        document.getElementById('counter').innerText = `${done.length}/${filtered.length}`;
 
             let html = "";
 
