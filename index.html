@@ -3,109 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Picking Simple</title>
+    <title>Sistema Bodega - Calispo</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { 
-            background-color: #f8f9fa; 
-            overscroll-behavior-y: contain; 
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .hero-photo { height: 280px; }
-        .bin-a { background-color: #10b981 !important; } /* Verde */
-        .bin-b { background-color: #3b82f6 !important; } /* Azul */
-        .bin-c { background-color: #f59e0b !important; } /* Naranja */
+        body { background-color: #f8f9fa; overscroll-behavior-y: contain; user-select: none; -webkit-tap-highlight-color: transparent; transition: background-color 0.3s; }
+        .hero-photo { height: 250px; }
+        .bin-a { background-color: #10b981 !important; }
+        .bin-b { background-color: #3b82f6 !important; }
+        .bin-c { background-color: #f50b0b !important; }
+        .bin-d { background-color: #f59e0b !important; }
+        .bin-e { background-color: #700bf5 !important; }
+        .bin-f { background-color: #f50be9 !important; }
+        .bin-g { background-color: #0bdaf5 !important; }
+        .bin-h { background-color: #00a7e9 !important; }
+
         .bin-default { background-color: #475569; }
-        
-        .next-item { opacity: 0.4; }
-        .done-item { opacity: 0.5; filter: grayscale(1); }
+        .next-item { opacity: 0.6; }
+        .done-item { opacity: 0.7; filter: grayscale(1); }
         ::-webkit-scrollbar { display: none; }
 
+        .flash-pick { animation: flashYellow 0.4s ease-out; }
+        @keyframes flashYellow { 0% { background-color: #fef08a; } 100% { background-color: #f8f9fa; } }
 
-        /* Animación de parpadeo rápido (un solo pick) */
-.flash-pick {
-    animation: flashGreen 0.4s ease-out;
-}
+        .flash-complete { animation: pulseSuccess 2s infinite; }
+        @keyframes pulseSuccess { 0%, 100% { background-color: #f8f9fa; } 50% { background-color: #dcfce7; } }
+        
+        .mode-picking { border-bottom: 4px solid #ffae00; color: #0f0d00; }
+        .mode-layout { border-bottom: 4px solid #7c3aed; color: #7c3aed; }
 
-@keyframes flashGreen {
-    0% { background-color: rgb(255, 187, 0); }
-    100% { background-color: #f8f9fa; }
-}
 
-/* Animación de éxito final (bucle suave) */
-.flash-complete {
-    animation: pulseSuccess 2s infinite;
-}
+         .mode-picking-principal { border-bottom: 4px solid #ffae00; color: #ff951c; }
+        .mode-layout-pincipal { border-bottom: 4px solid #7c3aed; color: #7c3aed; }
 
-@keyframes pulseSuccess {
-    0%, 100% { background-color: #f8f9fa; }
-    50% { background-color: #dcfce7; }
-}
 
     </style>
 </head>
 <body class="p-2 font-sans text-slate-900">
 
     <div class="sticky top-0 bg-[#f8f9fa] pb-2 z-50">
+        <div class="flex bg-white rounded-xl shadow-sm mb-2 overflow-hidden border border-slate-200">
+            <button onclick="setMode('picking')" id="btn-pick" class="flex-1 py-3 text-xs font-black uppercase transition-all">📦 Picking (Salida)</button>
+            <button onclick="setMode('layout')" id="btn-layout" class="flex-1 py-3 text-xs font-black uppercase transition-all">🔄 Lay-out (Retorno)</button>
+        </div>
+
         <div class="flex justify-between items-center bg-white p-3 rounded-xl shadow-sm border border-slate-200">
             <div id="counter" class="text-sm font-black text-slate-400">0 / 0</div>
-            <select id="filterSchedule" onchange="render()" class="text-[11px] font-bold bg-slate-100 rounded-md px-2 py-1 outline-none">
-                <option value="">TODOS LOS HORARIOS</option>
+            <select id="filterSchedule" onchange="render()" class="text-[10px] font-bold bg-slate-100 rounded-md px-2 py-1 outline-none">
+                <option value="">HORARIOS</option>
             </select>
-            <button onclick="fetchSheetData()" id="updateBtn" class="bg-black text-white text-[10px] font-bold px-3 py-1.5 rounded-lg active:scale-90">
+            <button onclick="fetchSheetData(true)" id="updateBtn" class="bg-black text-white text-[10px] font-bold px-3 py-1.5 rounded-lg active:scale-90">
                 REFRESCAR
             </button>
         </div>
     </div>
 
     <div id="main-container" class="flex flex-col gap-3 pb-10">
-        <div class="text-center py-20 text-slate-300 font-bold uppercase tracking-tighter">Sincronizando...</div>
+        <div class="text-center py-20 text-slate-300 font-bold uppercase">Cargando...</div>
     </div>
 
     <script>
-        // REEMPLAZA CON TU ENLACE CSV
         const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQxmMtrLlKEH1uQUNmUvQxXUmFJQNQc46rwfOpKMNzJytrGDRxyMjo_S2DhQIDJmXTv1o6G2fvZQZgi/pub?gid=271238087&single=true&output=csv';
 
         let items = [];
-        let pickedIds = JSON.parse(localStorage.getItem('calispo_simple_v1')) || [];
+        let currentMode = 'picking'; 
+        let pickedIds = JSON.parse(localStorage.getItem('calispo_pick')) || [];
+        let layoutIds = JSON.parse(localStorage.getItem('calispo_layout')) || [];
 
-        // --- SECCIÓN DE SONIDOS ---
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-    function playTone(freq, type, duration, volume) {
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
+        function playTone(freq, type, duration, volume) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
 
-        oscillator.type = type;
-        oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        
-        gainNode.gain.setValueAtTime(volume, audioCtx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        function soundSuccess() {
+            const now = audioCtx.currentTime;
+            [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => {
+                setTimeout(() => playTone(f, 'triangle', 0.4, 0.3), i * 150);
+            });
+        }
 
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-
-        oscillator.start();
-        oscillator.stop(audioCtx.currentTime + duration);
-    }
-
-    function soundPick() {
-        playTone(600, 'sine', 0.1, 0.5); // Sonido corto y suave
-    }
-
-    function soundSuccess() {
-        // Una pequeña melodía de éxito (Do - Mi - Sol)
-        const now = audioCtx.currentTime;
-        [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => {
-            setTimeout(() => playTone(f, 'triangle', 0.4, 0.3), i * 150);
-        });
-    }
-    // ---------------------------
-
-        async function fetchSheetData() {
+        async function fetchSheetData(clearStorage = false) {
             const btn = document.getElementById('updateBtn');
             btn.innerText = '...';
+
+            if (clearStorage) {
+                // Borrar datos locales y reiniciar arrays
+                localStorage.removeItem('calispo_pick');
+                localStorage.removeItem('calispo_layout');
+                pickedIds = [];
+                layoutIds = [];
+            }
+
             try {
                 const response = await fetch(CSV_URL);
                 const csvText = await response.text();
@@ -114,26 +111,17 @@
             finally { btn.innerText = 'REFRESCAR'; }
         }
 
-        function getBinClass(bin) {
-            const letter = bin.replace(/[0-9]/g, '').toUpperCase();
-            if (letter.includes('A')) return 'bin-a';
-            if (letter.includes('B')) return 'bin-b';
-            if (letter.includes('C')) return 'bin-c';
-            return 'bin-default';
-        }
-
         function processCSV(text) {
             const lines = text.split(/\r?\n/);
             let temp = [];
-            let cC = "", cD = "", cR = "", cH = "";
             const schSet = new Set();
+            let cR = "", cH = "";
 
             for (let i = 1; i < lines.length; i++) {
                 const col = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                if (col.length < 20 || !col[7]) continue;
+                if (col.length < 10 || !col[7]) continue;
 
                 if (col[14]?.trim()) {
-                    cC = col[14].replace(/"/g, '').trim();
                     cR = col[18]?.trim() || "S/R";
                     cH = col[19]?.trim() || "S/H";
                     schSet.add(cH);
@@ -145,7 +133,9 @@
                     codigo: col[9]?.replace(/"/g, '') || "SIN CODIGO",
                     ruta: cR,
                     horario: cH,
-                    foto: col[20]?.trim() || ""
+                    foto: col[20]?.trim() || "",
+                    enDevolucion: col[3]?.trim().toUpperCase() === "TRUE", 
+                    yaVendido: col[6]?.trim().toUpperCase() === "TRUE"
                 });
             }
 
@@ -155,109 +145,118 @@
                 Array.from(schSet).sort().map(s => `<option value="${s}">${s}</option>`).join('');
             filter.value = currentVal;
 
-            items = temp.sort((a, b) => {
-                const mA = a.bin.match(/(\d+)([A-Z]+)/);
-                const mB = b.bin.match(/(\d+)([A-Z]+)/);
-                if (mA && mB) {
-                    if (mA[1] !== mB[1]) return parseInt(mA[1]) - parseInt(mB[1]);
-                    return mA[2].localeCompare(mB[2]);
-                }
-                return a.bin.localeCompare(b.bin);
-            });
+            items = temp.sort((a, b) => a.bin.localeCompare(b.bin));
             render();
         }
 
-        function togglePick(id) {
-        const isPicking = !pickedIds.includes(id);
-
-        if (isPicking) {
-            soundPick(); // Sonido
-            
-            // --- EFECTO VISUAL DE PICK ---
-            document.body.classList.remove('flash-pick');
-            void document.body.offsetWidth; // Truco para reiniciar la animación
-            document.body.classList.add('flash-pick');
-            
-            // Limpiamos la clase después de que termine la animación
-            setTimeout(() => document.body.classList.remove('flash-pick'), 400);
-        }
-        
-        pickedIds.includes(id) ? pickedIds = pickedIds.filter(i => i !== id) : pickedIds.push(id);
-        localStorage.setItem('calispo_simple_v1', JSON.stringify(pickedIds));
-        render();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    function render() {
-        const container = document.getElementById('main-container');
-        const sched = document.getElementById('filterSchedule').value;
-        const filtered = sched ? items.filter(i => i.horario === sched) : items;
-        
-        const todo = filtered.filter(i => !pickedIds.includes(i.id));
-        const done = filtered.filter(i => pickedIds.includes(i.id));
-        
-        // --- GESTIÓN DE FINALIZACIÓN ---
-        if (filtered.length > 0 && todo.length === 0) {
-            soundSuccess();
-            document.body.classList.add('flash-complete'); // Se queda parpadeando en verde suave
-        } else {
-            document.body.classList.remove('flash-complete');
+        function setMode(mode) {
+            currentMode = mode;
+            document.getElementById('btn-pick').className = `flex-1 py-3 text-xs font-black uppercase ${mode === 'picking' ? 'mode-picking' : 'text-slate-400'}`;
+            document.getElementById('btn-layout').className = `flex-1 py-3 text-xs font-black uppercase ${mode === 'layout' ? 'mode-layout' : 'text-slate-400'}`;
+            render();
         }
 
-        document.getElementById('counter').innerText = `${done.length}/${filtered.length}`;
+        function toggleAction(id) {
+            let list = currentMode === 'picking' ? pickedIds : layoutIds;
+            const index = list.indexOf(id);
+            
+            if (index === -1) {
+                list.push(id);
+                playTone(600, 'sine', 0.1, 0.2);
+                document.body.classList.add('flash-pick');
+                setTimeout(() => document.body.classList.remove('flash-pick'), 400);
+            } else {
+                list.splice(index, 1);
+            }
 
+            localStorage.setItem(currentMode === 'picking' ? 'calispo_pick' : 'calispo_layout', JSON.stringify(list));
+            render();
+        }
+
+        function render() {
+            const container = document.getElementById('main-container');
+            const sched = document.getElementById('filterSchedule').value;
+            const currentList = currentMode === 'picking' ? pickedIds : layoutIds;
+            const accentColor = currentMode === 'picking' ? 'blue-600' : 'violet-600';
+
+            let baseItems = sched ? items.filter(i => i.horario === sched) : items;
+
+            let filtered = currentMode === 'picking' 
+                ? baseItems.filter(i => i.yaVendido === false) 
+                : baseItems.filter(i => i.enDevolucion === true);
+
+            const todo = filtered.filter(i => !currentList.includes(i.id));
+            const done = filtered.filter(i => currentList.includes(i.id));
+
+            if (filtered.length > 0 && todo.length === 0) {
+                if (!document.body.classList.contains('flash-complete')) soundSuccess();
+                document.body.classList.add('flash-complete');
+            } else {
+                document.body.classList.remove('flash-complete');
+            }
+
+            document.getElementById('counter').innerText = `${done.length}/${filtered.length}`;
+            
             let html = "";
-
-            // 1. EL PROTAGONISTA (GRANDE)
             if (todo.length > 0) {
                 const main = todo[0];
                 html += `
-                    <div onclick="togglePick('${main.id}')" class="bg-white rounded-3xl overflow-hidden shadow-xl border-2 border-slate-900 active:scale-95 transition-all">
+                    <div onclick="toggleAction('${main.id}')" class="bg-white rounded-3xl overflow-hidden shadow-xl border-2 border-orange-500 active:scale-95 transition-all">
                         <div class="relative hero-photo bg-slate-200">
-                            <img src="${main.foto}" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/400?text=NO+FOTO'">
+                            <img src="${main.foto}" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/400?text=SIN+FOTO'">
                             <div class="absolute top-4 left-4 ${getBinClass(main.bin)} text-white text-4xl px-4 py-2 rounded-2xl font-black shadow-2xl border-2 border-white">
                                 ${main.bin}
                             </div>
                         </div>
-                        <div class="p-4 bg-white text-center">
-                            <h2 class="text-xl font-black uppercase tracking-tight mb-1">${main.codigo}</h2>
-                            <div class="flex justify-center items-center gap-4 border-t pt-2 border-slate-100">
-                                <span class="text-m font-bold text-slate-900">ID: ${main.id}</span>
-                                <span class="bg-blue-600 text-white text-xs font-black px-3 py-1 rounded-full uppercase">RUTA ${main.ruta}</span>
-                            </div>
+                        <div class="p-2 text-center">
+                        
+                            <h2 class="text-xl font-black uppercase tracking-tight">${main.codigo}</h2>
+                            <p class="text-m font-bold text-orange-500 mb-2">ID: ${main.id}</p>
+                            <span class="bg-slate-900 text-white text-[14px] font-black px-3 py-1 rounded-full uppercase">RUTA ${main.ruta}</span>
                         </div>
                     </div>
                 `;
 
-                // 2. SIGUIENTES (OPACOS)
                 if (todo.length > 1) {
-                    html += `<div class="flex flex-col gap-2 mt-4 px-1">`;
-                    html += todo.slice(1).map(i => `
-                        <div onclick="togglePick('${i.id}')" class="next-item bg-white p-3 rounded-xl flex items-center justify-between border border-slate-200">
+                    html += `<div class="flex flex-col gap-2 mt-2">` + todo.slice(1, 6).map(i => `
+                        <div onclick="toggleAction('${i.id}')" class="next-item bg-white p-3 rounded-xl flex items-center justify-between border border-slate-200">
                             <div class="flex items-center gap-3">
-                                <div class="${getBinClass(i.bin)} w-10 h-10 rounded-lg flex items-center justify-center text-white font-black text-sm">${i.bin}</div>
-                                <div class="text-[11px] font-bold uppercase truncate max-w-[150px]">${i.codigo}</div>
+                                <div class="${getBinClass(i.bin)} w-10 h-10 rounded-lg flex items-center justify-center text-white font-black text-xs">${i.bin}</div>
+                                <div class="text-[11px] font-bold uppercase truncate max-w-[140px]">${i.codigo}</div>
                             </div>
-                            <span class="text-[10px] font-bold text-slate-700">ID ${i.id}</span>
+                            <span class="text-[11px] font-bold text-slate-500">ID ${i.id}</span>
                         </div>
-                    `).join('');
-                    html += `</div>`;
+                    `).join('') + `</div>`;
                 }
             } else {
-                html += `<div class="py-20 text-center font-black text-green-500 text-xl uppercase">¡LISTO!</div>`;
+                html += `<div class="py-20 text-center font-black text-green-500 text-xl uppercase tracking-widest">✨ Tarea Completada ✨</div>`;
             }
 
-            // 3. RECOLECTADOS (AL FINAL)
             if (done.length > 0) {
-                html += `<div class="mt-8 border-t border-slate-200 pt-4 flex flex-wrap gap-2 justify-center">`;
-                html += done.map(i => `<div onclick="togglePick('${i.id}')" class="done-item bg-slate-300 text-[10px] font-bold px-2 py-1 rounded">${i.id}</div>`).join('');
-                html += `</div>`;
+                html += `<div class="mt-8 border-t border-slate-200 pt-4 flex flex-wrap gap-2 justify-center">` + 
+                        done.map(i => `<div onclick="toggleAction('${i.id}')" class="done-item bg-slate-200 text-[11px] font-bold px-2 py-1 rounded">${i.id}</div>`).join('') + 
+                        `</div>`;
             }
 
             container.innerHTML = html;
         }
 
-        fetchSheetData();
+        function getBinClass(bin) {
+            const letter = bin.replace(/[0-9]/g, '').toUpperCase();
+            if (letter.includes('A')) return 'bin-a';
+            if (letter.includes('B')) return 'bin-b';
+            if (letter.includes('C')) return 'bin-c';
+            if (letter.includes('D')) return 'bin-d';
+            if (letter.includes('E')) return 'bin-e';
+            if (letter.includes('F')) return 'bin-f';
+            if (letter.includes('G')) return 'bin-g';
+            if (letter.includes('H')) return 'bin-h';
+           
+            return 'bin-default';
+        }
+
+        // Carga inicial sin borrar para no perder progreso accidentalmente al abrir el link
+        fetchSheetData(false);
     </script>
 </body>
 </html>
