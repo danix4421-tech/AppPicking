@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Picking Simple</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { 
+            background-color: #f8f9fa; 
+            overscroll-behavior-y: contain; 
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .hero-photo { height: 280px; }
+        .bin-a { background-color: #10b981 !important; } /* Verde */
+        .bin-b { background-color: #3b82f6 !important; } /* Azul */
+        .bin-c { background-color: #f59e0b !important; } /* Naranja */
+        .bin-default { background-color: #475569; }
+        
+        .next-item { opacity: 0.4; }
+        .done-item { opacity: 0.5; filter: grayscale(1); }
+        ::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="p-2 font-sans text-slate-900">
+
+    <div class="sticky top-0 bg-[#f8f9fa] pb-2 z-50">
+        <div class="flex justify-between items-center bg-white p-3 rounded-xl shadow-sm border border-slate-200">
+            <div id="counter" class="text-sm font-black text-slate-400">0 / 0</div>
+            <select id="filterSchedule" onchange="render()" class="text-[11px] font-bold bg-slate-100 rounded-md px-2 py-1 outline-none">
+                <option value="">TODOS LOS HORARIOS</option>
+            </select>
+            <button onclick="fetchSheetData()" id="updateBtn" class="bg-black text-white text-[10px] font-bold px-3 py-1.5 rounded-lg active:scale-90">
+                REFRESCAR
+            </button>
+        </div>
+    </div>
+
+    <div id="main-container" class="flex flex-col gap-3 pb-10">
+        <div class="text-center py-20 text-slate-300 font-bold uppercase tracking-tighter">Sincronizando...</div>
+    </div>
+
+    <script>
+        // REEMPLAZA CON TU ENLACE CSV
+        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQxmMtrLlKEH1uQUNmUvQxXUmFJQNQc46rwfOpKMNzJytrGDRxyMjo_S2DhQIDJmXTv1o6G2fvZQZgi/pub?gid=271238087&single=true&output=csv';
+
+        let items = [];
+        let pickedIds = JSON.parse(localStorage.getItem('calispo_simple_v1')) || [];
+
+        async function fetchSheetData() {
+            const btn = document.getElementById('updateBtn');
+            btn.innerText = '...';
+            try {
+                const response = await fetch(CSV_URL);
+                const csvText = await response.text();
+                processCSV(csvText);
+            } catch (e) { alert('Error de red'); }
+            finally { btn.innerText = 'REFRESCAR'; }
+        }
+
+        function getBinClass(bin) {
+            const letter = bin.replace(/[0-9]/g, '').toUpperCase();
+            if (letter.includes('A')) return 'bin-a';
+            if (letter.includes('B')) return 'bin-b';
+            if (letter.includes('C')) return 'bin-c';
+            return 'bin-default';
+        }
+
+        function processCSV(text) {
+            const lines = text.split(/\r?\n/);
+            let temp = [];
+            let cC = "", cD = "", cR = "", cH = "";
+            const schSet = new Set();
+
+            for (let i = 1; i < lines.length; i++) {
+                const col = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                if (col.length < 20 || !col[7]) continue;
+
+                if (col[14]?.trim()) {
+                    cC = col[14].replace(/"/g, '').trim();
+                    cR = col[18]?.trim() || "S/R";
+                    cH = col[19]?.trim() || "S/H";
+                    schSet.add(cH);
+                }
+
+                temp.push({
+                    id: col[7].trim(),
+                    bin: col[8]?.trim().toUpperCase() || "S/U",
+                    codigo: col[9]?.replace(/"/g, '') || "SIN CODIGO",
+                    ruta: cR,
+                    horario: cH,
+                    foto: col[20]?.trim() || ""
+                });
+            }
+
+            const filter = document.getElementById('filterSchedule');
+            const currentVal = filter.value;
+            filter.innerHTML = '<option value="">HORARIOS</option>' + 
+                Array.from(schSet).sort().map(s => `<option value="${s}">${s}</option>`).join('');
+            filter.value = currentVal;
+
+            items = temp.sort((a, b) => {
+                const mA = a.bin.match(/(\d+)([A-Z]+)/);
+                const mB = b.bin.match(/(\d+)([A-Z]+)/);
+                if (mA && mB) {
+                    if (mA[1] !== mB[1]) return parseInt(mA[1]) - parseInt(mB[1]);
+                    return mA[2].localeCompare(mB[2]);
+                }
+                return a.bin.localeCompare(b.bin);
+            });
+            render();
+        }
+
+        function togglePick(id) {
+            pickedIds.includes(id) ? pickedIds = pickedIds.filter(i => i !== id) : pickedIds.push(id);
+            localStorage.setItem('calispo_simple_v1', JSON.stringify(pickedIds));
+            render();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function render() {
+            const container = document.getElementById('main-container');
+            const sched = document.getElementById('filterSchedule').value;
+            const filtered = sched ? items.filter(i => i.horario === sched) : items;
+            
+            const todo = filtered.filter(i => !pickedIds.includes(i.id));
+            const done = filtered.filter(i => pickedIds.includes(i.id));
+            document.getElementById('counter').innerText = `${done.length}/${filtered.length}`;
+
+            let html = "";
+
+            // 1. EL PROTAGONISTA (GRANDE)
+            if (todo.length > 0) {
+                const main = todo[0];
+                html += `
+                    <div onclick="togglePick('${main.id}')" class="bg-white rounded-3xl overflow-hidden shadow-xl border-2 border-slate-900 active:scale-95 transition-all">
+                        <div class="relative hero-photo bg-slate-200">
+                            <img src="${main.foto}" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/400?text=NO+FOTO'">
+                            <div class="absolute top-4 left-4 ${getBinClass(main.bin)} text-white text-4xl px-4 py-2 rounded-2xl font-black shadow-2xl border-2 border-white">
+                                ${main.bin}
+                            </div>
+                        </div>
+                        <div class="p-4 bg-white text-center">
+                            <h2 class="text-xl font-black uppercase tracking-tight mb-1">${main.codigo}</h2>
+                            <div class="flex justify-center items-center gap-4 border-t pt-2 border-slate-100">
+                                <span class="text-m font-bold text-slate-900">ID: ${main.id}</span>
+                                <span class="bg-blue-600 text-white text-xs font-black px-3 py-1 rounded-full uppercase">RUTA ${main.ruta}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // 2. SIGUIENTES (OPACOS)
+                if (todo.length > 1) {
+                    html += `<div class="flex flex-col gap-2 mt-4 px-1">`;
+                    html += todo.slice(1).map(i => `
+                        <div onclick="togglePick('${i.id}')" class="next-item bg-white p-3 rounded-xl flex items-center justify-between border border-slate-200">
+                            <div class="flex items-center gap-3">
+                                <div class="${getBinClass(i.bin)} w-10 h-10 rounded-lg flex items-center justify-center text-white font-black text-sm">${i.bin}</div>
+                                <div class="text-[11px] font-bold uppercase truncate max-w-[150px]">${i.codigo}</div>
+                            </div>
+                            <span class="text-[10px] font-bold text-slate-700">ID ${i.id}</span>
+                        </div>
+                    `).join('');
+                    html += `</div>`;
+                }
+            } else {
+                html += `<div class="py-20 text-center font-black text-green-500 text-xl uppercase">¡LISTO!</div>`;
+            }
+
+            // 3. RECOLECTADOS (AL FINAL)
+            if (done.length > 0) {
+                html += `<div class="mt-8 border-t border-slate-200 pt-4 flex flex-wrap gap-2 justify-center">`;
+                html += done.map(i => `<div onclick="togglePick('${i.id}')" class="done-item bg-slate-300 text-[10px] font-bold px-2 py-1 rounded">${i.id}</div>`).join('');
+                html += `</div>`;
+            }
+
+            container.innerHTML = html;
+        }
+
+        fetchSheetData();
+    </script>
+</body>
+</html>
