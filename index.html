@@ -38,16 +38,24 @@
 
     </style>
 </head>
+
+
+
 <body class="p-2 font-sans text-slate-900">
 
     <div class="sticky top-0 bg-[#f8f9fa] pb-2 z-50">
         <div class="flex bg-white rounded-xl shadow-sm mb-2 overflow-hidden border border-slate-200">
             <button onclick="setMode('picking')" id="btn-pick" class="flex-1 py-3 text-xs font-black uppercase transition-all">📦 Picking (Salida)</button>
-            <button onclick="setMode('layout')" id="btn-layout" class="flex-1 py-3 text-xs font-black uppercase transition-all">🔄 Lay-out (Retorno)</button>
+            <button onclick="setMode('layout')" id="btn-layout" class="flex-1 py-3 text-xs font-black uppercase transition-all">🔄 Put-away (Retorno)</button>
         </div>
 
         <div class="flex justify-between items-center bg-white p-3 rounded-xl shadow-sm border border-slate-200">
             <div id="counter" class="text-sm font-black text-slate-400">0 / 0</div>
+
+    <button onclick="sendToSheets()" id="sendBtn" class="hidden bg-orange-500 text-white text-[10px] font-black px-4 py-1.5 rounded-lg active:scale-95 animate-bounce">
+        ENVIAR A SHEETS
+    </button>
+
             <select id="filterSchedule" onchange="render()" class="text-[10px] font-bold bg-slate-100 rounded-md px-2 py-1 outline-none">
                 <option value="">HORARIOS</option>
             </select>
@@ -63,6 +71,7 @@
 
     <script>
         const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQxmMtrLlKEH1uQUNmUvQxXUmFJQNQc46rwfOpKMNzJytrGDRxyMjo_S2DhQIDJmXTv1o6G2fvZQZgi/pub?gid=271238087&single=true&output=csv';
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzHG9etg2vHrpoEQzE2W4A_q7g_creZQwL3xoMSo1_2DgGsFgZzOpj8TF0IfG1HRkxn/exec";
 
         let items = [];
         let currentMode = 'picking'; 
@@ -176,9 +185,10 @@
         function render() {
             const container = document.getElementById('main-container');
             const sched = document.getElementById('filterSchedule').value;
+
             const currentList = currentMode === 'picking' ? pickedIds : layoutIds;
             const accentColor = currentMode === 'picking' ? 'blue-600' : 'violet-600';
-
+            const sendBtn = document.getElementById('sendBtn');
             let baseItems = sched ? items.filter(i => i.horario === sched) : items;
 
             let filtered = currentMode === 'picking' 
@@ -187,6 +197,15 @@
 
             const todo = filtered.filter(i => !currentList.includes(i.id));
             const done = filtered.filter(i => currentList.includes(i.id));
+
+            // Lógica para mostrar el botón de enviar
+    // Solo si hay un horario seleccionado Y la lista de pendientes está vacía Y había algo que hacer
+    if (sched && filtered.length > 0 && todo.length === 0) {
+        sendBtn.classList.remove('hidden');
+    } else {
+        sendBtn.classList.add('hidden');
+    }
+
 
             if (filtered.length > 0 && todo.length === 0) {
                 if (!document.body.classList.contains('flash-complete')) soundSuccess();
@@ -257,6 +276,68 @@
 
         // Carga inicial sin borrar para no perder progreso accidentalmente al abrir el link
         fetchSheetData(false);
+
+
+
+        // 1. REEMPLAZA CON EL URL DE TU IMPLEMENTACIÓN DE GOOGLE APPS SCRIPT
+ 
+
+async function sendToSheets() {
+    const sched = document.getElementById('filterSchedule').value;
+    const sendBtn = document.getElementById('sendBtn');
+    
+    if (!sched) return alert("Selecciona un horario primero");
+    
+    // Determinar qué estado enviar según el modo actual
+    const estadoEnvio = currentMode === 'picking' ? "Picking OK" : "Put-away OK";
+
+    if (!confirm(`¿Confirmar envío de ${estadoEnvio} para el horario ${sched}?`)) return;
+
+    sendBtn.innerText = "ENVIANDO...";
+    sendBtn.disabled = true;
+
+    const payload = {
+        horario: sched,
+        estado: estadoEnvio,
+        modo: "cierre_masivo"
+    };
+
+    try {
+        // Usamos no-cors si hay problemas de redirección, o cors normal si el script lo permite
+        const response = await fetch(WEB_APP_URL, {
+            method: 'POST',
+            mode: 'no-cors', // Importante para evitar errores de CORS con Google Apps Script
+            cache: 'no-cache',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        // Con no-cors no podemos leer el body, pero si no hay error asumimos éxito
+        alert("✅ Datos enviados con éxito. Se actualizará la hoja en segundos.");
+        
+        // Limpiar el progreso local de ese horario para no duplicar
+        if (currentMode === 'picking') pickedIds = [];
+        else layoutIds = [];
+        
+        localStorage.setItem('calispo_pick', JSON.stringify(pickedIds));
+        localStorage.setItem('calispo_layout', JSON.stringify(layoutIds));
+        
+        fetchSheetData(false); // Refrescar para ver cambios
+
+    } catch (error) {
+        console.error(error);
+        alert("❌ Error al enviar datos: " + error.message);
+    } finally {
+        sendBtn.innerText = "ENVIAR A SHEETS";
+        sendBtn.disabled = false;
+    }
+}
+
+
+
+
+
+
     </script>
 </body>
 </html>
