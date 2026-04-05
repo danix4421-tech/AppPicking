@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Sistema Bodega - Calispo</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { background-color: #f8f9fa; overscroll-behavior-y: contain; user-select: none; -webkit-tap-highlight-color: transparent; transition: background-color 0.3s; }
+        body { background-color: #f8f9fa; overscroll-behavior-y: contain; user-select: none; -webkit-tap-highlight-color: transparent; transition: background-color 0.3s;  font-family: 'Plus Jakarta Sans', sans-serif; }
         .hero-photo { height: 250px; }
         .bin-a { background-color: #10b981 !important; }
         .bin-b { background-color: #3b82f6 !important; }
@@ -41,12 +42,32 @@
 
 
 
-<body class="p-2 font-sans text-slate-900">
+<body class="p-2 Plus Jakarta Sans text-slate-900">
+
+    <header class="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-slate-200 px-6 py-4">
+        <div class="max-w-md mx-auto flex justify-between items-center">
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="bg-indigo-600 text-white p-1 rounded-lg text-xs font-bold">Z</span>
+                    <h1 class="text-xl font-extrabold tracking-tight text-slate-900">LOGISTICS</h1>
+                </div>
+                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-[0.15em]">Control warehouse</p>
+            </div>
+            <button onclick="fetchSheetData(true)" id="update2Btn"class="bg-slate-100 p-2.5 rounded-full active:rotate-180 transition-all duration-700 border border-slate-200 shadow-sm active-tap">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+            </button>
+        </div>
+    </header>
+
+
+
 
     <div class="sticky top-0 bg-[#f8f9fa] pb-2 z-50">
         <div class="flex bg-white rounded-xl shadow-sm mb-2 overflow-hidden border border-slate-200">
-            <button onclick="setMode('picking')" id="btn-pick" class="flex-1 py-3 text-xs font-black uppercase transition-all">📦 Picking (Salida)</button>
-            <button onclick="setMode('layout')" id="btn-layout" class="flex-1 py-3 text-xs font-black uppercase transition-all">🔄 Put-away (Retorno)</button>
+            <button onclick="setMode('picking')" id="btn-pick" class="flex-1 py-3 text-xs font-black uppercase transition-all">Picking</button>
+            <button onclick="setMode('layout')" id="btn-layout" class="flex-1 py-3 text-xs font-black uppercase transition-all">Put-away</button>
         </div>
 
         <div class="flex justify-between items-center bg-white p-3 rounded-xl shadow-sm border border-slate-200">
@@ -59,8 +80,8 @@
             <select id="filterSchedule" onchange="render()" class="text-[10px] font-bold bg-slate-100 rounded-md px-2 py-1 outline-none">
                 <option value="">HORARIOS</option>
             </select>
-            <button onclick="fetchSheetData(true)" id="updateBtn" class="bg-black text-white text-[10px] font-bold px-3 py-1.5 rounded-lg active:scale-90">
-                REFRESCAR
+            <button onclick="fetchSheetData(true)" id="updateBtn" class="bg-black text-white text-[10px] font-bold px-3 py-1.5 rounded-lg active:scale-90 hidden">
+                REFRESH
             </button>
         </div>
     </div>
@@ -69,6 +90,9 @@
         <div class="text-center py-20 text-slate-300 font-bold uppercase">Cargando...</div>
     </div>
 
+
+
+    
     <script>
         const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQxmMtrLlKEH1uQUNmUvQxXUmFJQNQc46rwfOpKMNzJytrGDRxyMjo_S2DhQIDJmXTv1o6G2fvZQZgi/pub?gid=271238087&single=true&output=csv';
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzHG9etg2vHrpoEQzE2W4A_q7g_creZQwL3xoMSo1_2DgGsFgZzOpj8TF0IfG1HRkxn/exec";
@@ -117,7 +141,7 @@
                 const csvText = await response.text();
                 processCSV(csvText);
             } catch (e) { alert('Error de red'); }
-            finally { btn.innerText = 'REFRESCAR'; }
+            finally { btn.innerText = 'REFRECH'; }
         }
 
         function processCSV(text) {
@@ -332,11 +356,6 @@ async function sendToSheets() {
         sendBtn.disabled = false;
     }
 }
-
-
-
-
-
 
     </script>
 </body>
