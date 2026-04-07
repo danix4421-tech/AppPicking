@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sistema Bodega - Calispo</title>
+    <title>Sistema Bodega - Calipso</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { background-color: #f8f9fa; overscroll-behavior-y: contain; user-select: none; -webkit-tap-highlight-color: transparent; transition: background-color 0.3s;  font-family: 'Plus Jakarta Sans', sans-serif; }
-        .hero-photo { height: 250px; }
+        body { background-color: #f8f9fa; overscroll-behavior-y: contain; user-select: none; -webkit-tap-highlight-color: transparent; font-family: 'Plus Jakarta Sans', sans-serif; }
+        .hero-photo { height: 260px; transition: all 0.3s; }
+        
         .bin-a { background-color: #10b981 !important; }
         .bin-b { background-color: #3b82f6 !important; }
         .bin-c { background-color: #f50b0b !important; }
@@ -17,43 +18,41 @@
         .bin-f { background-color: #f50be9 !important; }
         .bin-g { background-color: #0bdaf5 !important; }
         .bin-h { background-color: #00a7e9 !important; }
-
         .bin-default { background-color: #475569; }
-        .next-item { opacity: 0.6; }
-        .done-item { opacity: 0.7; filter: grayscale(1); }
-        ::-webkit-scrollbar { display: none; }
 
-        .flash-pick { animation: flashYellow 0.4s ease-out; }
-        @keyframes flashYellow { 0% { background-color: #fef08a; } 100% { background-color: #f8f9fa; } }
+        @keyframes pulse-orange {
+            0%, 100% { transform: scale(1); border-color: #f97316; box-shadow: 0 0 0px #f97316; }
+            50% { transform: scale(1.02); border-color: #ea580c; background-color: #ffedd5; box-shadow: 0 0 15px #f97316; }
+        }
+        .pulse-search { animation: pulse-orange 1s infinite; border: 3px solid #f97316 !important; }
 
-        .flash-complete { animation: pulseSuccess 2s infinite; }
-        @keyframes pulseSuccess { 0%, 100% { background-color: #f8f9fa; } 50% { background-color: #dcfce7; } }
+        @keyframes pulse-totem {
+            0%, 100% { transform: scale(1); border-color: #4f46e5; box-shadow: 0 0 0px #4f46e5; }
+            50% { transform: scale(1.05); border-color: #4338ca; background-color: #e0e7ff; box-shadow: 0 0 15px #4f46e5; }
+        }
+        .suggested-totem { animation: pulse-totem 0.8s infinite; border-width: 3px !important; color: #4338ca !important; }
+
+        .checked-photo { border: 6px solid #10b981; filter: saturate(1.5); }
+        .flash-error { animation: flashRed 0.3s ease-out; }
+        @keyframes flashRed { 0% { background-color: #fee2e2; } 100% { background-color: #f8f9fa; } }
         
+        .flash-success { animation: flashGreen 0.4s ease-out; }
+        @keyframes flashGreen { 0% { background-color: #dcfce7; } 100% { background-color: #f8f9fa; } }
+
         .mode-picking { border-bottom: 4px solid #ffae00; color: #0f0d00; }
         .mode-layout { border-bottom: 4px solid #7c3aed; color: #7c3aed; }
-
-
-         .mode-picking-principal { border-bottom: 4px solid #ffae00; color: #ff951c; }
-        .mode-layout-pincipal { border-bottom: 4px solid #7c3aed; color: #7c3aed; }
-
-
     </style>
 </head>
 
-
-
-<body class="p-2 Plus Jakarta Sans text-slate-900">
+<body class="p-2 text-slate-900">
 
     <header class="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-slate-200 px-6 py-4">
         <div class="max-w-md mx-auto flex justify-between items-center">
-            <div>
-                <div class="flex items-center gap-2">
-                    <span class="bg-indigo-600 text-white p-1 rounded-lg text-xs font-bold">Z</span>
-                    <h1 class="text-xl font-extrabold tracking-tight text-slate-900">LOGISTICS</h1>
-                </div>
-                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-[0.15em]">Control warehouse</p>
+            <div class="flex items-center gap-2">
+                <span class="bg-indigo-600 text-white p-1 rounded-lg text-xs font-bold">Z</span>
+                <h1 class="text-xl font-extrabold tracking-tight">LOGISTICS</h1>
             </div>
-            <button onclick="fetchSheetData(true)" id="update2Btn"class="bg-slate-100 p-2.5 rounded-full active:rotate-180 transition-all duration-700 border border-slate-200 shadow-sm active-tap">
+            <button onclick="fetchSheetData(true)" class="bg-slate-100 p-2.5 rounded-full border border-slate-200 shadow-sm active:rotate-180 transition-transform">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
@@ -61,10 +60,7 @@
         </div>
     </header>
 
-
-
-
-    <div class="sticky top-0 bg-[#f8f9fa] pb-2 z-50">
+    <div class="sticky top-[73px] bg-[#f8f9fa] pb-2 z-40">
         <div class="flex bg-white rounded-xl shadow-sm mb-2 overflow-hidden border border-slate-200">
             <button onclick="setMode('picking')" id="btn-pick" class="flex-1 py-3 text-xs font-black uppercase transition-all">Picking</button>
             <button onclick="setMode('layout')" id="btn-layout" class="flex-1 py-3 text-xs font-black uppercase transition-all">Put-away</button>
@@ -72,39 +68,28 @@
 
         <div class="flex justify-between items-center bg-white p-3 rounded-xl shadow-sm border border-slate-200">
             <div id="counter" class="text-sm font-black text-slate-400">0 / 0</div>
-
-    <button onclick="sendToSheets()" id="sendBtn" class="hidden bg-orange-500 text-white text-[10px] font-black px-4 py-1.5 rounded-lg active:scale-95 animate-bounce">
-        ENVIAR A SHEETS
-    </button>
-
+            <button onclick="sendToSheets()" id="sendBtn" class="hidden bg-green-600 text-white text-[10px] font-black px-4 py-1.5 rounded-lg animate-bounce">ENVIAR A SHEETS</button>
             <select id="filterSchedule" onchange="render()" class="text-[10px] font-bold bg-slate-100 rounded-md px-2 py-1 outline-none">
                 <option value="">HORARIOS</option>
             </select>
-            <button onclick="fetchSheetData(true)" id="updateBtn" class="bg-black text-white text-[10px] font-bold px-3 py-1.5 rounded-lg active:scale-90 hidden">
-                REFRESH
-            </button>
         </div>
     </div>
 
-    <div id="main-container" class="flex flex-col gap-3 pb-10">
-        <div class="text-center py-20 text-slate-300 font-bold uppercase">Cargando...</div>
-    </div>
+    <div id="main-container" class="flex flex-col gap-3 pb-10 mt-2"></div>
 
-
-
-    
     <script>
         const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQxmMtrLlKEH1uQUNmUvQxXUmFJQNQc46rwfOpKMNzJytrGDRxyMjo_S2DhQIDJmXTv1o6G2fvZQZgi/pub?gid=271238087&single=true&output=csv';
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzHG9etg2vHrpoEQzE2W4A_q7g_creZQwL3xoMSo1_2DgGsFgZzOpj8TF0IfG1HRkxn/exec";
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzHG9etg2vHrpoEQzE2W4A_creZQwL3xoMSo1_2DgGsFgZzOpj8TF0IfG1HRkxn/exec";
 
         let items = [];
         let currentMode = 'picking'; 
         let pickedIds = JSON.parse(localStorage.getItem('calispo_pick')) || [];
         let layoutIds = JSON.parse(localStorage.getItem('calispo_layout')) || [];
+        let productChecked = false; 
 
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-        function playTone(freq, type, duration, volume) {
+        
+        function playTone(freq, duration, type = 'sine', volume = 0.1) {
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.type = type;
@@ -117,168 +102,203 @@
             osc.stop(audioCtx.currentTime + duration);
         }
 
-        function soundSuccess() {
-            const now = audioCtx.currentTime;
-            [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => {
-                setTimeout(() => playTone(f, 'triangle', 0.4, 0.3), i * 150);
-            });
-        }
+        // LIBRERÍA DE SONIDOS PERSONALIZADA
+        const sndScan = () => playTone(880, 0.1); 
+        const sndError = () => { 
+            playTone(250, 0.1, 'triangle', 0.05); 
+            setTimeout(() => playTone(150, 0.2, 'triangle', 0.05), 120); 
+            document.body.classList.add('flash-error');
+            setTimeout(() => document.body.classList.remove('flash-error'), 300);
+        };
+        const sndRoute = () => { 
+            playTone(523, 0.1); 
+            setTimeout(() => playTone(783, 0.2), 100); 
+        };
+        const sndFinish = () => { 
+            [523, 659, 783, 1046].forEach((f, i) => setTimeout(() => playTone(f, 0.15), i * 100)); 
+        };
 
         async function fetchSheetData(clearStorage = false) {
-            const btn = document.getElementById('updateBtn');
-            btn.innerText = '...';
-
             if (clearStorage) {
-                // Borrar datos locales y reiniciar arrays
                 localStorage.removeItem('calispo_pick');
                 localStorage.removeItem('calispo_layout');
-                pickedIds = [];
-                layoutIds = [];
+                pickedIds = []; layoutIds = [];
             }
-
             try {
                 const response = await fetch(CSV_URL);
                 const csvText = await response.text();
                 processCSV(csvText);
-            } catch (e) { alert('Error de red'); }
-            finally { btn.innerText = 'REFRECH'; }
+            } catch (e) { console.error(e); }
         }
 
         function processCSV(text) {
             const lines = text.split(/\r?\n/);
             let temp = [];
             const schSet = new Set();
-            let cR = "", cH = "";
+            let lastRuta = "S/R";
+            let lastHorario = "S/H";
 
             for (let i = 1; i < lines.length; i++) {
                 const col = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                 if (col.length < 10 || !col[7]) continue;
-
-                if (col[14]?.trim()) {
-                    cR = col[18]?.trim() || "S/R";
-                    cH = col[19]?.trim() || "S/H";
-                    schSet.add(cH);
+                if (col[18] && col[18].trim() !== "") lastRuta = col[18].trim().toUpperCase();
+                if (col[19] && col[19].trim() !== "") {
+                    lastHorario = col[19].trim();
+                    schSet.add(lastHorario);
                 }
-
                 temp.push({
                     id: col[7].trim(),
                     bin: col[8]?.trim().toUpperCase() || "S/U",
                     codigo: col[9]?.replace(/"/g, '') || "SIN CODIGO",
-                    ruta: cR,
-                    horario: cH,
+                    ruta: lastRuta,
+                    horario: lastHorario,
                     foto: col[20]?.trim() || "",
                     enDevolucion: col[3]?.trim().toUpperCase() === "TRUE", 
                     yaVendido: col[6]?.trim().toUpperCase() === "TRUE"
                 });
             }
-
             const filter = document.getElementById('filterSchedule');
             const currentVal = filter.value;
-            filter.innerHTML = '<option value="">HORARIOS</option>' + 
-                Array.from(schSet).sort().map(s => `<option value="${s}">${s}</option>`).join('');
+            filter.innerHTML = '<option value="">HORARIOS</option>' + Array.from(schSet).sort().map(s => `<option value="${s}">${s}</option>`).join('');
             filter.value = currentVal;
-
             items = temp.sort((a, b) => a.bin.localeCompare(b.bin));
             render();
         }
 
         function setMode(mode) {
             currentMode = mode;
+            productChecked = false;
             document.getElementById('btn-pick').className = `flex-1 py-3 text-xs font-black uppercase ${mode === 'picking' ? 'mode-picking' : 'text-slate-400'}`;
             document.getElementById('btn-layout').className = `flex-1 py-3 text-xs font-black uppercase ${mode === 'layout' ? 'mode-layout' : 'text-slate-400'}`;
             render();
         }
 
-        function toggleAction(id) {
-            let list = currentMode === 'picking' ? pickedIds : layoutIds;
-            const index = list.indexOf(id);
-            
-            if (index === -1) {
-                list.push(id);
-                playTone(600, 'sine', 0.1, 0.2);
-                document.body.classList.add('flash-pick');
-                setTimeout(() => document.body.classList.remove('flash-pick'), 400);
-            } else {
-                list.splice(index, 1);
-            }
-
-            localStorage.setItem(currentMode === 'picking' ? 'calispo_pick' : 'calispo_layout', JSON.stringify(list));
+        function checkProduct() {
+            productChecked = !productChecked;
+            if(productChecked) sndScan(); else playTone(300, 0.1);
             render();
         }
+
+        function selectTotem(totemLetter, correctRoute) {
+            if (!productChecked) return; 
+            const cleanRouteLetter = correctRoute.replace('RUTA ', '').trim();
+            
+            if (totemLetter !== cleanRouteLetter) {
+                sndError();
+                return;
+            }
+
+            let list = currentMode === 'picking' ? pickedIds : layoutIds;
+            list.push(currentItemId);
+            localStorage.setItem(currentMode === 'picking' ? 'calispo_pick' : 'calispo_layout', JSON.stringify(list));
+            
+            sndRoute(); // Sonido de ruta correcta
+            document.body.classList.add('flash-success');
+            setTimeout(() => document.body.classList.remove('flash-success'), 400);
+            productChecked = false;
+            render();
+        }
+
+        let currentItemId = null;
 
         function render() {
             const container = document.getElementById('main-container');
             const sched = document.getElementById('filterSchedule').value;
-
             const currentList = currentMode === 'picking' ? pickedIds : layoutIds;
-            const accentColor = currentMode === 'picking' ? 'blue-600' : 'violet-600';
-            const sendBtn = document.getElementById('sendBtn');
+            
             let baseItems = sched ? items.filter(i => i.horario === sched) : items;
-
             let filtered = currentMode === 'picking' 
                 ? baseItems.filter(i => i.yaVendido === false) 
                 : baseItems.filter(i => i.enDevolucion === true);
 
             const todo = filtered.filter(i => !currentList.includes(i.id));
-            const done = filtered.filter(i => currentList.includes(i.id));
-
-            // Lógica para mostrar el botón de enviar
-    // Solo si hay un horario seleccionado Y la lista de pendientes está vacía Y había algo que hacer
-    if (sched && filtered.length > 0 && todo.length === 0) {
-        sendBtn.classList.remove('hidden');
-    } else {
-        sendBtn.classList.add('hidden');
-    }
-
-
-            if (filtered.length > 0 && todo.length === 0) {
-                if (!document.body.classList.contains('flash-complete')) soundSuccess();
-                document.body.classList.add('flash-complete');
-            } else {
-                document.body.classList.remove('flash-complete');
-            }
+            const done = filtered.filter(i => currentList.includes(i.id)).reverse();
 
             document.getElementById('counter').innerText = `${done.length}/${filtered.length}`;
             
+            // Si acabamos de terminar la lista, sonido final
+            if (filtered.length > 0 && todo.length === 0 && !document.getElementById('sendBtn').classList.contains('active-finish')) {
+                sndFinish();
+                document.getElementById('sendBtn').classList.add('active-finish');
+            }
+
+            document.getElementById('sendBtn').classList.toggle('hidden', !(sched && filtered.length > 0 && todo.length === 0));
+
             let html = "";
             if (todo.length > 0) {
                 const main = todo[0];
+                currentItemId = main.id;
+                const targetLetter = main.ruta.replace('RUTA ', '').trim();
+
                 html += `
-                    <div onclick="toggleAction('${main.id}')" class="bg-white rounded-3xl overflow-hidden shadow-xl border-2 border-orange-500 active:scale-95 transition-all">
-                        <div class="relative hero-photo bg-slate-200">
+                    <div class="bg-white rounded-3xl overflow-hidden shadow-xl border border-slate-200">
+                        <div onclick="checkProduct()" class="relative hero-photo bg-slate-200 cursor-pointer ${productChecked ? 'checked-photo' : ''}">
                             <img src="${main.foto}" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/400?text=SIN+FOTO'">
-                            <div class="absolute top-4 left-4 ${getBinClass(main.bin)} text-white text-4xl px-4 py-2 rounded-2xl font-black shadow-2xl border-2 border-white">
+                            <div class="absolute top-4 left-4 ${getBinClass(main.bin)} text-white text-4xl px-4 py-2 rounded-2xl font-black shadow-lg">
                                 ${main.bin}
                             </div>
+                            ${productChecked ? '<div class="absolute inset-0 bg-green-500/20 flex items-center justify-center"><span class="bg-white text-green-600 font-black px-4 py-2 rounded-full shadow-xl">✅ VERIFICADO</span></div>' : ''}
                         </div>
-                        <div class="p-2 text-center">
                         
-                            <h2 class="text-xl font-black uppercase tracking-tight">${main.codigo}</h2>
-                            <p class="text-m font-bold text-orange-500 mb-2">ID: ${main.id}</p>
-                            <span class="bg-slate-900 text-white text-[14px] font-black px-3 py-1 rounded-full uppercase">RUTA ${main.ruta}</span>
+                        <div class="p-4 text-center mx-2 my-2 rounded-2xl transition-all ${!productChecked ? 'pulse-search' : 'bg-green-50 border-2 border-green-200'}">
+                            <h2 class="text-2xl font-black uppercase text-slate-800">${main.codigo}</h2>
+                            <p class="text-lg font-bold text-orange-500 tracking-widest">ID: ${main.id}</p>
+                        </div>
+
+                        <div class="p-4 pt-0 text-center">
+                            <div class="bg-slate-900 text-white py-2 px-6 rounded-2xl mb-4 inline-block">
+                                <span class="text-[10px] opacity-60 block uppercase font-bold">Destino</span>
+                                <span class="text-xl font-black">TÓTEM ${targetLetter}</span>
+                            </div>
+
+                            <div class="grid grid-cols-4 gap-3 ${!productChecked ? 'opacity-30 pointer-events-none' : 'opacity-100'}">
+                                ${['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map(t => {
+                                    const isTarget = t === targetLetter;
+                                    return `
+                                        <button onclick="selectTotem('${t}', '${main.ruta}')" 
+                                            class="py-4 rounded-xl font-black border-2 transition-all 
+                                            ${(isTarget && productChecked) ? 'suggested-totem' : 'bg-white border-slate-100 text-slate-300'}">
+                                            ${t}
+                                        </button>
+                                    `;
+                                }).join('')}
+                            </div>
                         </div>
                     </div>
                 `;
 
                 if (todo.length > 1) {
-                    html += `<div class="flex flex-col gap-2 mt-2">` + todo.slice(1, 6).map(i => `
-                        <div onclick="toggleAction('${i.id}')" class="next-item bg-white p-3 rounded-xl flex items-center justify-between border border-slate-200">
-                            <div class="flex items-center gap-3">
-                                <div class="${getBinClass(i.bin)} w-10 h-10 rounded-lg flex items-center justify-center text-white font-black text-xs">${i.bin}</div>
-                                <div class="text-[11px] font-bold uppercase truncate max-w-[140px]">${i.codigo}</div>
+                    html += `<div class="mt-2"><p class="text-[10px] font-black text-slate-400 mb-2 uppercase">Próximos:</p><div class="flex flex-col gap-2">` + 
+                        todo.slice(1, 6).map(i => `
+                            <div class="bg-white p-3 rounded-xl flex items-center justify-between border border-slate-100 opacity-60">
+                                <div class="flex items-center gap-3">
+                                    <div class="${getBinClass(i.bin)} w-8 h-8 rounded-lg flex items-center justify-center text-white font-black text-[10px]">${i.bin}</div>
+                                    <div class="text-[10px] font-bold uppercase">${i.codigo}</div>
+                                </div>
                             </div>
-                            <span class="text-[11px] font-bold text-slate-500">ID ${i.id}</span>
-                        </div>
-                    `).join('') + `</div>`;
+                        `).join('') + `</div></div>`;
                 }
             } else {
-                html += `<div class="py-20 text-center font-black text-green-500 text-xl uppercase tracking-widest">✨ Tarea Completada ✨</div>`;
+                html += `<div class="py-10 text-center font-black text-green-500 text-xl uppercase animate-pulse">¡LISTO PARA ENVIAR!</div>`;
             }
 
             if (done.length > 0) {
-                html += `<div class="mt-8 border-t border-slate-200 pt-4 flex flex-wrap gap-2 justify-center">` + 
-                        done.map(i => `<div onclick="toggleAction('${i.id}')" class="done-item bg-slate-200 text-[11px] font-bold px-2 py-1 rounded">${i.id}</div>`).join('') + 
-                        `</div>`;
+                html += `
+                    <div class="mt-6 border-t border-slate-200 pt-4">
+                        <p class="text-[10px] font-black text-green-600 mb-2 uppercase">Listos (${done.length}):</p>
+                        <div class="flex flex-col gap-2">
+                            ${done.map(i => `
+                                <div class="bg-green-50 p-3 rounded-xl flex items-center justify-between border border-green-100">
+                                    <div class="flex items-center gap-3">
+                                        <div class="bg-green-500 w-8 h-8 rounded-lg flex items-center justify-center text-white font-black text-[10px]">✓</div>
+                                        <div class="text-[10px] font-bold uppercase text-green-800">${i.codigo}</div>
+                                    </div>
+                                    <span class="text-[10px] font-bold text-green-600">ID: ${i.id}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
             }
 
             container.innerHTML = html;
@@ -286,77 +306,23 @@
 
         function getBinClass(bin) {
             const letter = bin.replace(/[0-9]/g, '').toUpperCase();
-            if (letter.includes('A')) return 'bin-a';
-            if (letter.includes('B')) return 'bin-b';
-            if (letter.includes('C')) return 'bin-c';
-            if (letter.includes('D')) return 'bin-d';
-            if (letter.includes('E')) return 'bin-e';
-            if (letter.includes('F')) return 'bin-f';
-            if (letter.includes('G')) return 'bin-g';
-            if (letter.includes('H')) return 'bin-h';
-           
-            return 'bin-default';
+            const map = { 'A':'bin-a', 'B':'bin-b', 'C':'bin-c', 'D':'bin-d', 'E':'bin-e', 'F':'bin-f', 'G':'bin-g', 'H':'bin-h' };
+            return map[letter] || 'bin-default';
         }
 
-        // Carga inicial sin borrar para no perder progreso accidentalmente al abrir el link
+        async function sendToSheets() {
+            const sched = document.getElementById('filterSchedule').value;
+            const sendBtn = document.getElementById('sendBtn');
+            if (!confirm(`¿Cerrar proceso?`)) return;
+            sendBtn.innerText = "ENVIANDO...";
+            try {
+                await fetch(WEB_APP_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ horario: sched, estado: currentMode === 'picking' ? "Picking OK" : "Put-away OK", modo: "cierre_masivo" }) });
+                alert("✅ Guardado");
+                location.reload();
+            } catch (e) { alert("❌ Error"); }
+        }
+
         fetchSheetData(false);
-
-
-
-        // 1. REEMPLAZA CON EL URL DE TU IMPLEMENTACIÓN DE GOOGLE APPS SCRIPT
- 
-
-async function sendToSheets() {
-    const sched = document.getElementById('filterSchedule').value;
-    const sendBtn = document.getElementById('sendBtn');
-    
-    if (!sched) return alert("Selecciona un horario primero");
-    
-    // Determinar qué estado enviar según el modo actual
-    const estadoEnvio = currentMode === 'picking' ? "Picking OK" : "Put-away OK";
-
-    if (!confirm(`¿Confirmar envío de ${estadoEnvio} para el horario ${sched}?`)) return;
-
-    sendBtn.innerText = "ENVIANDO...";
-    sendBtn.disabled = true;
-
-    const payload = {
-        horario: sched,
-        estado: estadoEnvio,
-        modo: "cierre_masivo"
-    };
-
-    try {
-        // Usamos no-cors si hay problemas de redirección, o cors normal si el script lo permite
-        const response = await fetch(WEB_APP_URL, {
-            method: 'POST',
-            mode: 'no-cors', // Importante para evitar errores de CORS con Google Apps Script
-            cache: 'no-cache',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        // Con no-cors no podemos leer el body, pero si no hay error asumimos éxito
-        alert("✅ Datos enviados con éxito. Se actualizará la hoja en segundos.");
-        
-        // Limpiar el progreso local de ese horario para no duplicar
-        if (currentMode === 'picking') pickedIds = [];
-        else layoutIds = [];
-        
-        localStorage.setItem('calispo_pick', JSON.stringify(pickedIds));
-        localStorage.setItem('calispo_layout', JSON.stringify(layoutIds));
-        
-        fetchSheetData(false); // Refrescar para ver cambios
-
-    } catch (error) {
-        console.error(error);
-        alert("❌ Error al enviar datos: " + error.message);
-    } finally {
-        sendBtn.innerText = "ENVIAR A SHEETS";
-        sendBtn.disabled = false;
-    }
-}
-
     </script>
 </body>
 </html>
