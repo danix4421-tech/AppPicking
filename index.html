@@ -79,7 +79,7 @@
 
     <script>
         const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQxmMtrLlKEH1uQUNmUvQxXUmFJQNQc46rwfOpKMNzJytrGDRxyMjo_S2DhQIDJmXTv1o6G2fvZQZgi/pub?gid=271238087&single=true&output=csv';
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzHG9etg2vHrpoEQzE2W4A_creZQwL3xoMSo1_2DgGsFgZzOpj8TF0IfG1HRkxn/exec";
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzHG9etg2vHrpoEQzE2W4A_q7g_creZQwL3xoMSo1_2DgGsFgZzOpj8TF0IfG1HRkxn/exec";
 
         let items = [];
         let currentMode = 'picking'; 
@@ -311,18 +311,56 @@
         }
 
         async function sendToSheets() {
-            const sched = document.getElementById('filterSchedule').value;
-            const sendBtn = document.getElementById('sendBtn');
-            if (!confirm(`¿Cerrar proceso?`)) return;
-            sendBtn.innerText = "ENVIANDO...";
-            try {
-                await fetch(WEB_APP_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ horario: sched, estado: currentMode === 'picking' ? "Picking OK" : "Put-away OK", modo: "cierre_masivo" }) });
-                alert("✅ Guardado");
-                location.reload();
-            } catch (e) { alert("❌ Error"); }
-        }
+    const sched = document.getElementById('filterSchedule').value;
+    const sendBtn = document.getElementById('sendBtn');
+    
+    if (!sched) return alert("Selecciona un horario primero");
+    
+    // Determinar qué estado enviar según el modo actual
+    const estadoEnvio = currentMode === 'picking' ? "Picking OK" : "Put-away OK";
 
-        fetchSheetData(false);
+    if (!confirm(`¿Confirmar envío de ${estadoEnvio} para el horario ${sched}?`)) return;
+
+    sendBtn.innerText = "ENVIANDO...";
+    sendBtn.disabled = true;
+
+    const payload = {
+        horario: sched,
+        estado: estadoEnvio,
+        modo: "cierre_masivo"
+    };
+
+    try {
+        // Usamos no-cors si hay problemas de redirección, o cors normal si el script lo permite
+        const response = await fetch(WEB_APP_URL, {
+            method: 'POST',
+            mode: 'no-cors', // Importante para evitar errores de CORS con Google Apps Script
+            cache: 'no-cache',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        // Con no-cors no podemos leer el body, pero si no hay error asumimos éxito
+        alert("✅ Datos enviados con éxito. Se actualizará la hoja en segundos.");
+        
+        // Limpiar el progreso local de ese horario para no duplicar
+        if (currentMode === 'picking') pickedIds = [];
+        else layoutIds = [];
+        
+        localStorage.setItem('calispo_pick', JSON.stringify(pickedIds));
+        localStorage.setItem('calispo_layout', JSON.stringify(layoutIds));
+        
+        fetchSheetData(false); // Refrescar para ver cambios
+
+    } catch (error) {
+        console.error(error);
+        alert("❌ Error al enviar datos: " + error.message);
+    } finally {
+        sendBtn.innerText = "ENVIAR A SHEETS";
+        sendBtn.disabled = false;
+    }
+}
+
     </script>
 </body>
 </html>
